@@ -1,10 +1,9 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Events;
 using UnityEngine.XR.ARFoundation;
 using UnityEngine.XR.ARSubsystems;
 
-namespace UnityEngine.XR.ARFoundation.Samples
-{
     /// <summary>
     /// Listens for touch events and performs an AR raycast from the screen touch point.
     /// AR raycasts will only hit detected trackables like feature points and planes.
@@ -19,12 +18,15 @@ namespace UnityEngine.XR.ARFoundation.Samples
         [Tooltip("Instantiates this prefab on a plane at the touch location.")]
         GameObject m_PlacedPrefab;
 
-        private PlaneDetectionController detectionController;
+    UnityEvent placementUpdate;
 
-        /// <summary>
-        /// The prefab to instantiate on touch.
-        /// </summary>
-        public GameObject placedPrefab
+    [SerializeField]
+    GameObject visualObject;
+
+    /// <summary>
+    /// The prefab to instantiate on touch.
+    /// </summary>
+    public GameObject placedPrefab
         {
             get { return m_PlacedPrefab; }
             set { m_PlacedPrefab = value; }
@@ -38,7 +40,11 @@ namespace UnityEngine.XR.ARFoundation.Samples
         void Awake()
         {
             m_RaycastManager = GetComponent<ARRaycastManager>();
-            detectionController = GetComponent<PlaneDetectionController>();
+
+            if (placementUpdate == null)
+                placementUpdate = new UnityEvent();
+
+                placementUpdate.AddListener(DiableVisual);
         }
 
         bool TryGetTouchPosition(out Vector2 touchPosition)
@@ -67,39 +73,22 @@ namespace UnityEngine.XR.ARFoundation.Samples
                 if (spawnedObject == null)
                 {
                     spawnedObject = Instantiate(m_PlacedPrefab, hitPose.position, hitPose.rotation);
-                    detectionController.TogglePlaneDetection();
+                    
                 }
                 else
                 {
                     spawnedObject.transform.position = hitPose.position;
-                    detectionController.TogglePlaneDetection();
                 }
+                    placementUpdate.Invoke();
             }
         }
+
+    public void DiableVisual()
+    {
+        visualObject.SetActive(false);
+    }
 
         static List<ARRaycastHit> s_Hits = new List<ARRaycastHit>();
 
         ARRaycastManager m_RaycastManager;
-
-
-        public void DestroySpawnedObject()
-        {
-            if (spawnedObject != null)
-            {
-                Destroy(spawnedObject);
-                //detectionController.TogglePlaneDetection();
-                detectionController.ResetDetection();
-            }
-        }
-
-        public void ResetPlaneDetection()
-        {
-            if (spawnedObject)
-                Destroy(spawnedObject);
-            //detectionController.TogglePlaneDetection();
-            if (detectionController)
-                detectionController.ResetDetection();
-        }
-
     }
-}
